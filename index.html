@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>👍 for the 👀 and 👎 for the 👀</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none;
+    }
+    body {
+      background: linear-gradient(135deg, #fff7fb 0%, #eef9ff 50%, #f4fff5 100%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #fff;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      height: 100vh;
+      width: 100vw;
+    }
+    header {
+      width: 100%;
+      padding: 12px 20px;
+      background: rgba(255,255,255,0.92);
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      z-index: 10;
+    }
+    .header-row {
+      position: relative;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .fullscreen-btn {
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 46px;
+      height: 46px;
+      border: 2px solid rgba(255,255,255,0.8);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      font-size: 1.8rem;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 20;
+    }
+
+    .fullscreen-btn:active {
+      transform: translateY(-50%) scale(0.94);
+    }
+
+    h1 {
+      font-size: clamp(1.4rem, 4vw, 2.2rem);
+      color: #8b6fb8;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+    #game-container {
+      position: relative;
+      flex: 1;
+      width: 100%;
+      max-width: 1000px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+    canvas {
+      background: #bfe8d0;
+      border: 16px solid #6b4328;
+      border-radius: 24px;
+      box-shadow: inset 0 0 20px rgba(0,0,0,0.6), 0 10px 25px rgba(0,0,0,0.5);
+      display: block;
+    }
+    .mode-controls { position:absolute; top:10px; right:12px; z-index:20; display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .mode-btn { border:2px solid #d8c9ec; background:#fff; color:#6b5a86; border-radius:999px; padding:9px 15px; font-size:.95rem; font-weight:800; cursor:pointer; box-shadow:0 4px 10px rgba(139,119,170,.16); }
+    .mode-btn.active { background:#e9dcf8; color:#644f83; border-color:#c8b7e8; }
+    #click-hint { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); z-index:15; background:rgba(255,255,255,.9); color:#6b5a86; padding:10px 18px; border-radius:999px; font-weight:700; display:none; pointer-events:none; }
+    .modal {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(92,78,120,0.55); backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      padding: 20px;
+    }
+    .modal.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .card {
+      background: #fffafd;
+      color: #333;
+      border-radius: 28px;
+      padding: 24px;
+      max-width: 900px;
+      width: 94%;
+      text-align: center;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+      border: 6px solid #e8c7df;
+      transform: scale(0.8);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .modal.active .card {
+      transform: scale(1);
+    }
+    .ball-number-badge {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: #b8a8d9;
+      color: #fff;
+      border: 4px solid #f3d3e7;
+      font-size: 2rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .card-title {
+      display: none;
+    }
+    .card-img {
+      width: 100%;
+      max-height: 70vh;
+      object-fit: contain;
+      border-radius: 16px;
+      margin-bottom: 18px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      background: #f8f9fa;
+    }
+    .btn-continue {
+      background: #9edfc1;
+      color: white;
+      border: none;
+      padding: 14px 40px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      border-radius: 50px;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #76c7a3;
+      transition: all 0.1s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-continue:active {
+      transform: translateY(4px);
+      box-shadow: 0 2px 0 #76c7a3;
+    }
+    #win-modal .card {
+      border-color: #2ecc71;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-row">
+      <h1>👍 for the 👀 and 👎 for the 👀</h1>
+      <button id="fullscreen-btn" class="fullscreen-btn" type="button" aria-label="Full screen" title="Full screen">⛶</button>
+    </div>
+  </header>
+
+  <div id="game-container">
+    <canvas id="table"></canvas>
+    <div class="mode-controls">
+      <button class="mode-btn active" id="shoot-mode-btn">🎱 Shoot Mode</button>
+      <button class="mode-btn" id="click-mode-btn">👆 Click Mode</button>
+    </div>
+    <div id="click-hint">Click a ball to see the picture!</div>
+
+    <!-- Habit Popup Modal -->
+    <div id="habit-modal" class="modal">
+      <div class="card">
+        <div id="modal-number" class="ball-number-badge">1</div>
+        <div id="modal-title" class="card-title"></div>
+        <img id="modal-img" class="card-img" src="" alt="Eye health activity picture">
+        <button class="btn-continue" id="btn-resume">Play On ➔</button>
+      </div>
+    </div>
+
+    <!-- Win Modal -->
+    <div id="win-modal" class="modal">
+      <div class="card">
+        <div class="ball-number-badge" style="background:#2ecc71; border-color:#fff;">🎉</div>
+        <h2 style="font-size: 2rem; color: #76c7a3; margin-bottom: 15px;">You Did It!</h2>
+        <button class="btn-continue" id="btn-restart">Play Again 🔄</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Audio System (Web Audio API) ---
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) audioCtx = new AudioCtx();
+    }
+
+    function playSound(type) {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'hit') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } else if (type === 'pocket') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(150, now + 0.25);
+        gain.gain.setValueAtTime(0.6, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+    }
+
+    // SVG helper to generate placeholder images matching the habits
+    function createSvgPlaceholder(text, bg, emoji) {
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="300" viewBox="0 0 500 300">
+        <rect width="500" height="300" fill="${bg}"/>
+        <text x="250" y="120" font-size="70" text-anchor="middle" dominant-baseline="middle">${emoji}</text>
+        <text x="250" y="210" font-size="28" font-family="sans-serif" font-weight="bold" fill="#ffffff" text-anchor="middle">${text}</text>
+      </svg>`;
+      return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    }
+
+    // --- Habit Data (Mapped to numbers 1-10) ---
+    const HABITS = [
+      { id: 1, title: 'Wearing Sunglasses', color: '#e74c3c', imgSrc: '1.png', svgFallback: createSvgPlaceholder('Wearing Sunglasses', '#e74c3c', '🕶️') },
+      { id: 2, title: 'Screen Too Close', color: '#3498db', imgSrc: '2.png', svgFallback: createSvgPlaceholder('Screen Too Close', '#3498db', '📱') },
+      { id: 3, title: 'Reading in the Dark', color: '#f1c40f', imgSrc: '3.png', svgFallback: createSvgPlaceholder('Reading in the Dark', '#f1c40f', '🌙') },
+      { id: 4, title: 'Reading in Good Light', color: '#9b59b6', imgSrc: '4.png', svgFallback: createSvgPlaceholder('Reading in Good Light', '#9b59b6', '💡') },
+      { id: 5, title: 'Rubbing Eyes', color: '#e67e22', imgSrc: '5.png', svgFallback: createSvgPlaceholder('Rubbing Eyes', '#e67e22', '👁️') },
+      { id: 6, title: 'Sitting Too Close to TV', color: '#1abc9c', imgSrc: '6.png', svgFallback: createSvgPlaceholder('Sitting Too Close to TV', '#1abc9c', '📺') },
+      { id: 7, title: 'Wearing a Cap', color: '#d8b6e8', imgSrc: '7.png', svgFallback: createSvgPlaceholder('Wearing a Cap', '#d8b6e8', '🧢') },
+      { id: 8, title: 'Eating Good Food', color: '#2ecc71', imgSrc: '8.png', svgFallback: createSvgPlaceholder('Eating Good Food', '#2ecc71', '🥕') },
+      { id: 9, title: 'Getting Good Sleep', color: '#34495e', imgSrc: '9.png', svgFallback: createSvgPlaceholder('Getting Good Sleep', '#34495e', '😴') },
+      { id: 10, title: 'Solar Viewing Glasses', color: '#8e44ad', imgSrc: '10.png', svgFallback: createSvgPlaceholder('Solar Viewing Glasses', '#8e44ad', '☀️') }
+    ];
+
+    // --- Canvas & Physics Setup ---
+    const canvas = document.getElementById('table');
+    const ctx = canvas.getContext('2d');
+
+    let TABLE_WIDTH = 800;
+    let TABLE_HEIGHT = 450;
+    const BALL_RADIUS = 22;
+    const POCKET_RADIUS = 30;
+
+    let pockets = [];
+    let balls = [];
+    let cueBall = null;
+    let gameMode = 'shoot';
+    let clickModeBalls = [];
+    let habitCardQueue = [];
+    let currentHabitCard = null;
+    let habitCardShowing = false;
+
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let dragCurrent = { x: 0, y: 0 };
+
+    function resizeCanvas() {
+      const container = document.getElementById('game-container');
+      const maxW = container.clientWidth - 20;
+      const maxH = container.clientHeight - 20;
+
+      let w = maxW;
+      let h = w / 1.777;
+
+      if (h > maxH) {
+        h = maxH;
+        w = h * 1.777;
+      }
+
+      canvas.width = w;
+      canvas.height = h;
+
+      TABLE_WIDTH = w;
+      TABLE_HEIGHT = h;
+
+      pockets = [
+        { x: 20, y: 20 },
+        { x: TABLE_WIDTH / 2, y: 15 },
+        { x: TABLE_WIDTH - 20, y: 20 },
+        { x: 20, y: TABLE_HEIGHT - 20 },
+        { x: TABLE_WIDTH / 2, y: TABLE_HEIGHT - 15 },
+        { x: TABLE_WIDTH - 20, y: TABLE_HEIGHT - 20 }
+      ];
+    }
+
+    class Ball {
+      constructor(x, y, data = null, isCue = false) {
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.data = data;
+        this.isCue = isCue;
+        this.inPocket = false;
+        this.radius = BALL_RADIUS;
+      }
+
+      update() {
+        if (this.inPocket) return;
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // Friction
+        this.vx *= 0.985;
+        this.vy *= 0.985;
+
+        if (Math.abs(this.vx) < 0.05) this.vx = 0;
+        if (Math.abs(this.vy) < 0.05) this.vy = 0;
+
+        // Wall collisions
+        const r = this.radius;
+        if (this.x - r < 10) { this.x = 10 + r; this.vx *= -0.8; playSound('hit'); }
+        if (this.x + r > TABLE_WIDTH - 10) { this.x = TABLE_WIDTH - 10 - r; this.vx *= -0.8; playSound('hit'); }
+        if (this.y - r < 10) { this.y = 10 + r; this.vy *= -0.8; playSound('hit'); }
+        if (this.y + r > TABLE_HEIGHT - 10) { this.y = TABLE_HEIGHT - 10 - r; this.vy *= -0.8; playSound('hit'); }
+
+        // Check pockets
+        for (let p of pockets) {
+          const dx = this.x - p.x;
+          const dy = this.y - p.y;
+          if (Math.sqrt(dx * dx + dy * dy) < POCKET_RADIUS) {
+            this.inPocket = true;
+            this.vx = 0;
+            this.vy = 0;
+            playSound('pocket');
+            if (!this.isCue) {
+              queueHabitCard(this.data);
+            } else {
+              setTimeout(() => {
+                this.x = TABLE_WIDTH * 0.22;
+                this.y = TABLE_HEIGHT / 2;
+                this.inPocket = false;
+              }, 600);
+            }
+            break;
+          }
+        }
+      }
+
+      draw() {
+        if (this.inPocket) return;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+
+        if (this.isCue) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#bdc3c7';
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = this.data.color;
+          ctx.fill();
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = '#ffffff';
+          ctx.stroke();
+
+          // Inner white circle for ball number
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.radius * 0.55, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+
+          // Ball Number
+          ctx.fillStyle = '#111111';
+          ctx.font = `bold ${Math.max(13, Math.round(this.radius * 0.62))}px sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(this.data.id, this.x, this.y);
+        }
+        ctx.restore();
+      }
+    }
+
+    function setupBalls() {
+      habitCardQueue = [];
+      currentHabitCard = null;
+      habitCardShowing = false;
+      document.getElementById('habit-modal').classList.remove('active');
+      balls = [];
+      cueBall = new Ball(TABLE_WIDTH * 0.22, TABLE_HEIGHT / 2, null, true);
+      balls.push(cueBall);
+
+      const startX = TABLE_WIDTH * 0.65;
+      const startY = TABLE_HEIGHT / 2;
+      const spacing = BALL_RADIUS * 2.1;
+
+      let idx = 0;
+      const rows = [1, 2, 3, 4];
+
+      for (let r = 0; r < rows.length; r++) {
+        const count = rows[r];
+        const rowX = startX + r * (spacing * 0.866);
+        const rowStartY = startY - ((count - 1) * spacing) / 2;
+
+        for (let c = 0; c < count; c++) {
+          if (idx < HABITS.length) {
+            const ballY = rowStartY + c * spacing;
+            balls.push(new Ball(rowX, ballY, HABITS[idx]));
+            idx++;
+          }
+        }
+      }
+    }
+
+    function setupClickMode() {
+      habitCardQueue = [];
+      currentHabitCard = null;
+      habitCardShowing = false;
+      document.getElementById('habit-modal').classList.remove('active');
+      balls = []; clickModeBalls = []; cueBall = null;
+      const marginX = TABLE_WIDTH * 0.12;
+      const gap = (TABLE_WIDTH - marginX * 2) / 4;
+      const rowY = [TABLE_HEIGHT * 0.34, TABLE_HEIGHT * 0.66];
+      HABITS.forEach((habit, i) => {
+        const b = new Ball(marginX + (i % 5) * gap, rowY[i < 5 ? 0 : 1], habit);
+        b.radius = Math.min(44, TABLE_HEIGHT * 0.105);
+        balls.push(b); clickModeBalls.push(b);
+      });
+    }
+
+    function setMode(mode) {
+      gameMode = mode;
+      document.getElementById("shoot-mode-btn").classList.toggle("active", mode === "shoot");
+      document.getElementById("click-mode-btn").classList.toggle("active", mode === "click");
+      document.getElementById("click-hint").style.display = mode === "click" ? "block" : "none";
+      document.getElementById("win-modal").classList.remove("active");
+      document.getElementById("habit-modal").classList.remove("active");
+      if (mode === "click") setupClickMode(); else setupBalls();
+    }
+
+    function handleClickMode(e) {
+      if (gameMode !== "click" || isTableMoving()) return;
+      const pos = getCanvasCoords(e);
+      for (const b of clickModeBalls) {
+        if (b.inPocket) continue;
+        const dx = pos.x - b.x, dy = pos.y - b.y;
+        if (Math.hypot(dx, dy) <= b.radius * 1.15) {
+          b.inPocket = true; playSound("pocket");
+          queueHabitCard(b.data);
+          if (!habitCardShowing) setTimeout(showNextHabitCard, 120);
+          return;
+        }
+      }
+    }
+
+    function handleCollisions() {
+      for (let i = 0; i < balls.length; i++) {
+        for (let j = i + 1; j < balls.length; j++) {
+          let b1 = balls[i];
+          let b2 = balls[j];
+
+          if (b1.inPocket || b2.inPocket) continue;
+
+          let dx = b2.x - b1.x;
+          let dy = b2.y - b1.y;
+          let dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < BALL_RADIUS * 2) {
+            playSound('hit');
+
+            let angle = Math.atan2(dy, dx);
+            let sin = Math.sin(angle);
+            let cos = Math.cos(angle);
+
+            let vx1 = b1.vx * cos + b1.vy * sin;
+            let vy1 = b1.vy * cos - b1.vx * sin;
+            let vx2 = b2.vx * cos + b2.vy * sin;
+            let vy2 = b2.vy * cos - b2.vx * sin;
+
+            let finalVx1 = vx2;
+            let finalVx2 = vx1;
+
+            b1.vx = finalVx1 * cos - vy1 * sin;
+            b1.vy = vy1 * cos + finalVx1 * sin;
+            b2.vx = finalVx2 * cos - vy2 * sin;
+            b2.vy = vy2 * cos + finalVx2 * sin;
+
+            let overlap = (BALL_RADIUS * 2) - dist;
+            b1.x -= (overlap / 2) * cos;
+            b1.y -= (overlap / 2) * sin;
+            b2.x += (overlap / 2) * cos;
+            b2.y += (overlap / 2) * sin;
+          }
+        }
+      }
+    }
+
+    function isTableMoving() {
+      return balls.some(b => !b.inPocket && (Math.abs(b.vx) > 0.05 || Math.abs(b.vy) > 0.05));
+    }
+
+    function checkWinCondition() {
+      const remainingHabitBalls = balls.filter(b => !b.isCue && !b.inPocket);
+      if (remainingHabitBalls.length === 0) {
+        document.getElementById('win-modal').classList.add('active');
+      }
+    }
+
+    function drawTable() {
+      if (gameMode === 'click') { ctx.fillStyle = 'rgba(255,255,255,.24)'; ctx.fillRect(0, TABLE_HEIGHT * .5 - 2, TABLE_WIDTH, 4); }
+      ctx.fillStyle = '#0b6b3a';
+      ctx.fillRect(0, 0, TABLE_WIDTH, TABLE_HEIGHT);
+
+      for (let p of pockets) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, POCKET_RADIUS, 0, Math.PI * 2);
+        ctx.fillStyle = '#111111';
+        ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#6b4328';
+        ctx.stroke();
+      }
+
+      if (gameMode === 'shoot' && isDragging && cueBall && !cueBall.inPocket) {
+        let dx = dragStart.x - dragCurrent.x;
+        let dy = dragStart.y - dragCurrent.y;
+        let dist = Math.min(Math.sqrt(dx * dx + dy * dy), 150);
+        let angle = Math.atan2(dy, dx);
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(cueBall.x, cueBall.y);
+        ctx.lineTo(cueBall.x + Math.cos(angle) * (dist * 2), cueBall.y + Math.sin(angle) * (dist * 2));
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+        ctx.setLineDash([6, 6]);
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(cueBall.x, cueBall.y);
+        ctx.rotate(angle + Math.PI);
+        ctx.fillStyle = '#d8b6e8';
+        ctx.fillRect(dist * 0.2 + 20, -4, 180, 8);
+        ctx.restore();
+      }
+
+      for (let b of balls) {
+        if (gameMode === 'shoot') b.update();
+        b.draw();
+      }
+
+      if (gameMode === 'shoot') handleCollisions();
+    }
+
+    function gameLoop() {
+      drawTable();
+      if (gameMode === 'shoot' && !isTableMoving() && !habitCardShowing && habitCardQueue.length) {
+        showNextHabitCard();
+      }
+      requestAnimationFrame(gameLoop);
+    }
+
+    function getCanvasCoords(e) {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: (clientX - rect.left) * (TABLE_WIDTH / rect.width),
+        y: (clientY - rect.top) * (TABLE_HEIGHT / rect.height)
+      };
+    }
+
+    function onStart(e) {
+      if (gameMode === 'click') { handleClickMode(e); return; }
+      initAudio();
+      if (isTableMoving()) return;
+
+      const pos = getCanvasCoords(e);
+      const dx = pos.x - cueBall.x;
+      const dy = pos.y - cueBall.y;
+
+      if (Math.sqrt(dx * dx + dy * dy) < BALL_RADIUS * 4) {
+        isDragging = true;
+        dragStart = pos;
+        dragCurrent = pos;
+      }
+    }
+
+    function onMove(e) {
+      if (gameMode !== 'shoot' || !isDragging) return;
+      dragCurrent = getCanvasCoords(e);
+    }
+
+    function onEnd() {
+      if (gameMode !== 'shoot' || !isDragging) return;
+      isDragging = false;
+
+      let dx = dragStart.x - dragCurrent.x;
+      let dy = dragStart.y - dragCurrent.y;
+      const dragDistance = Math.sqrt(dx * dx + dy * dy);
+
+      // Grade-1 / Level-0 friendly shooting:
+      // even a short pull gives the cue ball enough force to reach a target.
+      let power = Math.min(Math.max(dragDistance / 4, 8), 26);
+
+      if (power > 1) {
+        let angle = Math.atan2(dy, dx);
+
+        // Gentle aim assist: if the player's shot is close to a ball,
+        // automatically guide it toward that ball. This keeps the
+        // billiards idea but makes aiming much easier for young beginners.
+        let bestTarget = null;
+        let bestAngleDiff = Infinity;
+
+        for (const b of balls) {
+          if (b.isCue || b.inPocket || !b.data) continue;
+
+          const tx = b.x - cueBall.x;
+          const ty = b.y - cueBall.y;
+          const targetDistance = Math.sqrt(tx * tx + ty * ty);
+          if (targetDistance > 650) continue;
+
+          const targetAngle = Math.atan2(ty, tx);
+          let diff = Math.atan2(
+            Math.sin(targetAngle - angle),
+            Math.cos(targetAngle - angle)
+          );
+          const absDiff = Math.abs(diff);
+
+          // Up to about 35 degrees of aiming help.
+          if (absDiff < bestAngleDiff && absDiff < Math.PI * 35 / 180) {
+            bestAngleDiff = absDiff;
+            bestTarget = b;
+          }
+        }
+
+        if (bestTarget) {
+          angle = Math.atan2(
+            bestTarget.y - cueBall.y,
+            bestTarget.x - cueBall.x
+          );
+        }
+
+        cueBall.vx = Math.cos(angle) * power;
+        cueBall.vy = Math.sin(angle) * power;
+        playSound('hit');
+      }
+    }
+
+    canvas.addEventListener('mousedown', onStart);
+    canvas.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onEnd);
+
+    canvas.addEventListener('touchstart', onStart, { passive: false });
+    canvas.addEventListener('touchmove', onMove, { passive: false });
+    window.addEventListener('touchend', onEnd);
+
+    // --- Modal Logic ---
+    function queueHabitCard(habit) {
+      if (!habit || habitCardQueue.some(h => h.id === habit.id) || currentHabitCard?.id === habit.id) return;
+      habitCardQueue.push(habit);
+    }
+
+    function showHabitCard(habit) {
+      const modal = document.getElementById('habit-modal');
+      const numberBadge = document.getElementById('modal-number');
+      const img = document.getElementById('modal-img');
+      const btn = document.getElementById('btn-resume');
+
+      currentHabitCard = habit;
+      habitCardShowing = true;
+      numberBadge.textContent = habit.id;
+      img.onerror = () => { img.src = habit.svgFallback; };
+      img.src = habit.imgSrc;
+
+      // If more balls were pocketed, the student must press Next to see
+      // the next picture. Only the final card says Play On.
+      btn.textContent = habitCardQueue.length ? 'Next ➜' : 'Play On ➔';
+      modal.classList.add('active');
+    }
+
+    function showNextHabitCard() {
+      if (!habitCardQueue.length || habitCardShowing) return;
+      showHabitCard(habitCardQueue.shift());
+    }
+
+    document.getElementById('btn-resume').addEventListener('click', () => {
+      const btn = document.getElementById('btn-resume');
+      document.getElementById('habit-modal').classList.remove('active');
+      habitCardShowing = false;
+      currentHabitCard = null;
+
+      if (habitCardQueue.length) {
+        // There is another pocketed ball waiting. Show it after the modal
+        // closes so the cards appear in the same order as the queue.
+        setTimeout(showNextHabitCard, 120);
+      } else {
+        btn.textContent = 'Play On ➔';
+        checkWinCondition();
+      }
+    });
+
+    document.getElementById('btn-restart').addEventListener('click', () => {
+      document.getElementById('win-modal').classList.remove('active');
+      if (gameMode === 'click') setupClickMode(); else setupBalls();
+    });
+
+    document.getElementById('shoot-mode-btn').addEventListener('click', () => setMode('shoot'));
+    document.getElementById('click-mode-btn').addEventListener('click', () => setMode('click'));
+
+    window.addEventListener('resize', () => { resizeCanvas(); if (gameMode === 'click') setupClickMode(); else setupBalls(); });
+
+    resizeCanvas();
+    setupBalls();
+    gameLoop();
+    // --- Fullscreen Button ---
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+
+    function isFullscreen() {
+      return !!(document.fullscreenElement || document.webkitFullscreenElement);
+    }
+
+    async function enterFullscreen() {
+      const el = document.documentElement;
+      if (el.requestFullscreen) return el.requestFullscreen();
+      if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+      throw new Error('Fullscreen API is not supported by this browser.');
+    }
+
+    async function exitFullscreen() {
+      if (document.exitFullscreen) return document.exitFullscreen();
+      if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+    }
+
+    async function toggleFullscreen(event) {
+      if (event) event.preventDefault();
+      try {
+        if (isFullscreen()) {
+          await exitFullscreen();
+        } else {
+          await enterFullscreen();
+        }
+      } catch (err) {
+        console.warn('Fullscreen unavailable:', err);
+        alert('Full screen is not available in this browser. Please try Chrome or Edge.');
+      }
+      updateFullscreenButton();
+    }
+
+    function updateFullscreenButton() {
+      if (!fullscreenBtn) return;
+      const active = isFullscreen();
+      fullscreenBtn.textContent = active ? '↙' : '⛶';
+      fullscreenBtn.title = active ? 'Exit full screen' : 'Full screen';
+      fullscreenBtn.setAttribute('aria-label', active ? 'Exit full screen' : 'Full screen');
+    }
+
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+    document.addEventListener('fullscreenchange', updateFullscreenButton);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+    updateFullscreenButton();
+
+  </script>
+</body>
+</html>
